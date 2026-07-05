@@ -1,0 +1,33 @@
+.env
+*.env
+infra/.env
+*.session
+
+.venv/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.vscode/
+.idea/
+.DS_Store
+
+# Other files
+commands.txt
+prompts.txt
+docs/*
+!docs/CLI.md
+!docs/cli/
+!docs/cli/**
+!docs/rag-search-plan.md
+
+# Infra files
+infra/*.json
+infra/*.har
+
+# Text files
+*.txt
+var/
+data/
+review/
+design/
