@@ -7,6 +7,7 @@ def make_settings(**overrides: Any) -> Settings:
     params: dict[str, Any] = {
         'TG_BOT_TOKEN': 'test-token',
         'OPEN_AI_KEY': 'test-key',
+        'llm_model': 'test-model',
     }
     params.update(overrides)
     return Settings(_env_file=None, **params)

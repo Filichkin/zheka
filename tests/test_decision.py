@@ -14,6 +14,7 @@ def make_settings(**overrides: Any) -> Settings:
     params: dict[str, Any] = {
         'TG_BOT_TOKEN': 'test-token',
         'OPEN_AI_KEY': 'test-key',
+        'llm_model': 'test-model',
         'reply_probability': 0.0,
         'trigger_keywords': '',
     }

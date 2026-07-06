@@ -13,6 +13,7 @@ def make_settings() -> Settings:
         _env_file=None,
         TG_BOT_TOKEN='test-token',
         OPEN_AI_KEY='test-key',
+        llm_model='test-model',
     )
 
 

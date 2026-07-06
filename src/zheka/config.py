@@ -15,7 +15,7 @@ class Settings(BaseSettings):
     openai_api_key: str = Field(validation_alias='OPEN_AI_KEY')
     admin_id: int = Field(default=0, validation_alias='TG_ADMIN_ID')
     openai_base_url: str = ''
-    llm_model: str = 'gpt-5.4'
+    llm_model: str
     reply_probability: float = 0.07
     max_replies_per_minute: int = 3
     max_replies_per_day: int = 300
