@@ -1,0 +1,41 @@
+[project]
+name = "zheka"
+version = "0.1.0"
+description = "LLM-powered Telegram bot for group chats"
+readme = "README.md"
+authors = [
+    { name = "Alexey Filichkin", email = "filichkin.alexey@gmail.com" }
+]
+requires-python = ">=3.14"
+dependencies = [
+    "aiogram>=3.29.1",
+    "loguru>=0.7.3",
+    "openai>=2.44.0",
+    "pydantic-settings>=2.14.2",
+]
+
+[project.scripts]
+zheka = "zheka.bot.main:main"
+
+[build-system]
+requires = ["uv_build>=0.9.2,<0.10.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+    "ruff>=0.15.20",
+]
+
+[tool.ruff]
+line-length = 79
+target-version = "py314"
+
+[tool.ruff.lint]
+select = ["E", "W", "F", "I", "N", "UP", "B"]
+
+[tool.ruff.lint.isort]
+lines-after-imports = 2
+
+[tool.ruff.format]
+quote-style = "single"
