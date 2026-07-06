@@ -22,6 +22,21 @@ class Settings(BaseSettings):
     context_window: int = 15
     trigger_keywords: str = ''
     persona_path: str = 'infra/persona.txt'
+    allowed_chat_ids: str = ''
+
+    @property
+    def allowed_chats(self) -> set[int]:
+        """Разрешённые chat_id; пустое множество — без ограничений."""
+        return {
+            int(chunk.strip())
+            for chunk in self.allowed_chat_ids.split(',')
+            if chunk.strip()
+        }
+
+    def chat_allowed(self, chat_id: int) -> bool:
+        """Можно ли боту работать в этом чате."""
+        allowed = self.allowed_chats
+        return not allowed or chat_id in allowed
 
     @property
     def keywords(self) -> list[str]:

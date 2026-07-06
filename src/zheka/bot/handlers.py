@@ -1,7 +1,7 @@
-from aiogram import F, Router
-from aiogram.enums import ChatType
+from aiogram import Bot, F, Router
+from aiogram.enums import ChatMemberStatus, ChatType
 from aiogram.exceptions import TelegramAPIError, TelegramRetryAfter
-from aiogram.types import ErrorEvent, Message
+from aiogram.types import ChatMemberUpdated, ErrorEvent, Message
 from loguru import logger
 
 from zheka.config import Settings
@@ -21,12 +21,41 @@ async def on_handler_error(event: ErrorEvent) -> None:
     logger.exception('Unhandled error in handler: {}', event.exception)
 
 
+@router.my_chat_member()
+async def on_bot_membership_change(
+    event: ChatMemberUpdated,
+    bot: Bot,
+    settings: Settings,
+) -> None:
+    """Логирует добавления/удаления бота и уходит из чужих чатов."""
+    chat = event.chat
+    status = event.new_chat_member.status
+    logger.info(
+        'Bot membership change: chat={} title={!r} status={}',
+        chat.id,
+        chat.title,
+        status,
+    )
+    if chat.type == ChatType.PRIVATE:
+        return
+    if status in {ChatMemberStatus.LEFT, ChatMemberStatus.KICKED}:
+        return
+    if not settings.chat_allowed(chat.id):
+        logger.warning(
+            'Chat {} ({!r}) is not whitelisted, leaving',
+            chat.id,
+            chat.title,
+        )
+        await bot.leave_chat(chat.id)
+
+
 @router.message(
     F.chat.type.in_({ChatType.GROUP, ChatType.SUPERGROUP}),
     F.text,
 )
 async def on_group_message(
     message: Message,
+    bot: Bot,
     buffer: ContextBuffer,
     settings: Settings,
     rate_limiter: RateLimiter,
@@ -39,6 +68,14 @@ async def on_group_message(
     author = message.from_user.full_name if message.from_user else 'unknown'
     text = message.text or ''
     chat_id = message.chat.id
+
+    if not settings.chat_allowed(chat_id):
+        logger.warning(
+            'Message from non-whitelisted chat={}, leaving', chat_id
+        )
+        await bot.leave_chat(chat_id)
+        return
+
     logger.info('chat={} author={} text={}', chat_id, author, text)
 
     recent = buffer.get_recent(chat_id)
