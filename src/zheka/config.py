@@ -1,6 +1,8 @@
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from zheka.constants import TRIGGER_KEYWORDS
+
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
@@ -23,6 +25,9 @@ class Settings(BaseSettings):
 
     @property
     def keywords(self) -> list[str]:
+        """Ключевые слова из .env либо дефолтный список из констант."""
+        if not self.trigger_keywords:
+            return TRIGGER_KEYWORDS
         return [
             word.strip().lower()
             for word in self.trigger_keywords.split(',')
