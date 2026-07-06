@@ -50,7 +50,8 @@ async def on_group_message(
         return
 
     logger.info('Generating reply in chat={}', chat_id)
-    messages = build_messages(persona, recent, f'{author}: {text}')
+    trigger_author = ' '.join(author.split())
+    messages = build_messages(persona, recent, f'{trigger_author}: {text}')
     reply = await llm.generate(messages)
     if not reply:
         logger.warning('No reply generated for chat={}', chat_id)
