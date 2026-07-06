@@ -14,7 +14,7 @@ LOG_FORMAT = (
 
 
 class InterceptHandler(logging.Handler):
-    """Redirect stdlib logging records (aiogram, openai) to loguru."""
+    """Перенаправляет записи stdlib logging (aiogram, openai) в loguru."""
 
     def emit(self, record: logging.LogRecord) -> None:
         try:
