@@ -21,6 +21,14 @@ async def on_handler_error(event: ErrorEvent) -> None:
     logger.exception('Unhandled error in handler: {}', event.exception)
 
 
+async def _leave_chat_quietly(bot: Bot, chat_id: int) -> None:
+    """Выходит из чата; «уже не участник» — не ошибка, цель достигнута."""
+    try:
+        await bot.leave_chat(chat_id)
+    except TelegramAPIError as error:
+        logger.warning('Could not leave chat={}: {}', chat_id, error)
+
+
 @router.my_chat_member()
 async def on_bot_membership_change(
     event: ChatMemberUpdated,
@@ -46,7 +54,7 @@ async def on_bot_membership_change(
             chat.id,
             chat.title,
         )
-        await bot.leave_chat(chat.id)
+        await _leave_chat_quietly(bot, chat.id)
 
 
 @router.message(
@@ -73,7 +81,7 @@ async def on_group_message(
         logger.warning(
             'Message from non-whitelisted chat={}, leaving', chat_id
         )
-        await bot.leave_chat(chat_id)
+        await _leave_chat_quietly(bot, chat_id)
         return
 
     logger.info('chat={} author={} text={}', chat_id, author, text)
