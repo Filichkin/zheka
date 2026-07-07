@@ -1,5 +1,12 @@
 """Константы проекта."""
 
+LOG_FORMAT = (
+    '<green>{time:YYYY-MM-DD HH:mm:ss}</green> '
+    '| <level>{level: <8}</level> '
+    '| <cyan>{name}</cyan>:<cyan>{function}</cyan> '
+    '- <level>{message}</level>'
+)
+
 MINUTE_WINDOW_SECONDS = 60.0
 
 MAX_COMPLETION_TOKENS = 500
