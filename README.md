@@ -167,7 +167,7 @@ uv run zheka
 ## Разработка
 
 ```bash
-uv run pytest              # тесты
+uv run pytest                    # тесты
 uv run ruff check src/ tests/    # линтер
 uv run ruff format src/ tests/   # форматирование
 ```
