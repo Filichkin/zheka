@@ -1,6 +1,6 @@
 # Жека
 
-<img src="zheka-avatar-512.png" alt="Жека" width="160" align="right">
+<img src="zheka-avatar-512.png" alt="Жека" width="120" align="right">
 
 Telegram-бот для группового чата на LLM (OpenAI). Живёт в группе как обычный
 участник, сам решает, когда вступить в разговор, и отвечает в заданном
