@@ -3,6 +3,8 @@ name = "zheka"
 version = "0.1.0"
 description = "LLM-powered Telegram bot for group chats"
 readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
 authors = [
     { name = "Alexey Filichkin", email = "filichkin.alexey@gmail.com" }
 ]

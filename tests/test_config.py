@@ -14,9 +14,9 @@ def make_settings(**overrides: Any) -> Settings:
 
 
 def test_allowed_chats_parsed_from_csv() -> None:
-    settings = make_settings(allowed_chat_ids='-1001103887282, -1001687070692')
+    settings = make_settings(allowed_chat_ids='-1001000000001, -1001000000002')
 
-    assert settings.allowed_chats == {-1001103887282, -1001687070692}
+    assert settings.allowed_chats == {-1001000000001, -1001000000002}
 
 
 def test_whitelisted_chat_is_allowed() -> None:
