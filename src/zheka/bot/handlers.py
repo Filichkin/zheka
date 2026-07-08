@@ -7,7 +7,8 @@ from loguru import logger
 from zheka.config import Settings
 from zheka.constants import TELEGRAM_MESSAGE_LIMIT
 from zheka.context import ContextBuffer
-from zheka.llm import LLMClient, build_messages
+from zheka.llm import LLMClient, SearchAgent, build_messages
+from zheka.llm.formatting import render_answer
 from zheka.ratelimit import RateLimiter
 from zheka.triggers import is_stale, should_respond
 
@@ -71,6 +72,8 @@ async def on_group_message(
     rate_limiter: RateLimiter,
     llm: LLMClient,
     persona: str,
+    search_agent: SearchAgent | None,
+    agent_persona: str,
     bot_id: int,
     bot_username: str,
     bot_name: str,
@@ -106,13 +109,27 @@ async def on_group_message(
 
     logger.info('Генерирую ответ в чате {}', chat_id)
     trigger_author = ' '.join(author.split())
-    messages = build_messages(persona, recent, f'{trigger_author}: {text}')
-    reply = await llm.generate(messages)
+    trigger = f'{trigger_author}: {text}'
+
+    reply = None
+    if search_agent is not None and settings.search_allowed(chat_id):
+        answer = await search_agent.ask(
+            build_messages(agent_persona, recent, trigger), chat_id
+        )
+        if answer is not None and answer.text:
+            reply = render_answer(answer)
+
+    if reply is None:
+        generated = await llm.generate(
+            build_messages(persona, recent, trigger)
+        )
+        if generated:
+            reply = generated[:TELEGRAM_MESSAGE_LIMIT]
+
     if not reply:
         logger.warning('Ответ для чата {} не сгенерирован', chat_id)
         return
 
-    reply = reply[:TELEGRAM_MESSAGE_LIMIT]
     try:
         await message.reply(reply)
     except TelegramRetryAfter as error:
