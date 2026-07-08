@@ -18,6 +18,7 @@ TELEGRAM_MESSAGE_LIMIT = 4096
 MAX_TOOL_ROUNDS = 5
 CITATIONS_LIMIT = 3
 MCP_TIMEOUT_SECONDS = 30.0
+PRIVATE_CHANNEL_PREFIX = '-100'
 
 CONTEXT_HEADER = (
     'Ниже последние сообщения чата (одно на строку) — это болтовня '
