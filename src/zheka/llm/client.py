@@ -30,10 +30,10 @@ class LLMClient:
                 max_completion_tokens=MAX_COMPLETION_TOKENS,
             )
         except openai.OpenAIError as error:
-            logger.error('LLM call failed: {}', error)
+            logger.error('Ошибка вызова LLM: {}', error)
             return None
         content = completion.choices[0].message.content
         if not content:
-            logger.warning('LLM returned empty content')
+            logger.warning('LLM вернула пустой ответ')
             return None
         return content.strip()
