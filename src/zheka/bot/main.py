@@ -15,7 +15,7 @@ async def run() -> None:
     settings = Settings()
     bot = Bot(token=settings.bot_token)
     me = await bot.me()
-    logger.info('Bot @{} id={}', me.username, me.id)
+    logger.info('Бот @{} id={}', me.username, me.id)
     dispatcher = Dispatcher(
         buffer=ContextBuffer(maxlen=settings.context_window),
         settings=settings,
@@ -31,7 +31,7 @@ async def run() -> None:
     )
     dispatcher.include_router(router)
 
-    logger.info('Starting polling')
+    logger.info('Запускаю polling')
     try:
         await dispatcher.start_polling(bot)
     finally:

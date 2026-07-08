@@ -1,9 +1,10 @@
+from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
 from typing import Any
 
 from zheka.config import Settings
 from zheka.ratelimit import RateLimiter
-from zheka.triggers import should_respond
+from zheka.triggers import is_stale, should_respond
 
 
 BOT_ID = 42
@@ -87,6 +88,27 @@ def test_probability_one_always_responds() -> None:
         make_limiter(),
         random_func=lambda: 0.5,
     )
+
+
+def test_fresh_message_is_not_stale() -> None:
+    now = datetime(2026, 7, 8, 12, 0, 0, tzinfo=UTC)
+    sent = now - timedelta(seconds=30)
+
+    assert not is_stale(sent, now=now)
+
+
+def test_old_message_is_stale() -> None:
+    now = datetime(2026, 7, 8, 12, 0, 0, tzinfo=UTC)
+    sent = now - timedelta(hours=3)
+
+    assert is_stale(sent, now=now)
+
+
+def test_message_at_threshold_is_not_stale() -> None:
+    now = datetime(2026, 7, 8, 12, 0, 0, tzinfo=UTC)
+    sent = now - timedelta(seconds=300)
+
+    assert not is_stale(sent, now=now)
 
 
 def test_exhausted_limit_blocks_mention() -> None:

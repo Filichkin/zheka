@@ -1,10 +1,28 @@
 import random
 from collections.abc import Callable
+from datetime import UTC, datetime
 
 from aiogram.types import Message
 
 from zheka.config import Settings
+from zheka.constants import STALE_MESSAGE_SECONDS
 from zheka.ratelimit import RateLimiter
+
+
+def is_stale(
+    message_date: datetime,
+    now: datetime | None = None,
+) -> bool:
+    """Устарело ли сообщение: старше STALE_MESSAGE_SECONDS.
+
+    Такие сообщения приходят пачкой после простоя бота (очередь
+    Telegram живёт до 24 часов) — отвечать на них поздно, они
+    только сохраняются в контекст.
+    """
+    if now is None:
+        now = datetime.now(UTC)
+    age = (now - message_date).total_seconds()
+    return age > STALE_MESSAGE_SECONDS
 
 
 def should_respond(
