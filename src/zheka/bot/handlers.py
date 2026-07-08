@@ -9,7 +9,7 @@ from zheka.constants import TELEGRAM_MESSAGE_LIMIT
 from zheka.context import ContextBuffer
 from zheka.llm import LLMClient, build_messages
 from zheka.ratelimit import RateLimiter
-from zheka.triggers import should_respond
+from zheka.triggers import is_stale, should_respond
 
 
 router = Router(name='group_messages')
@@ -88,6 +88,14 @@ async def on_group_message(
 
     recent = buffer.get_recent(chat_id)
     buffer.add(chat_id, author, text)
+
+    if is_stale(message.date):
+        logger.info(
+            'Пропускаю устаревшее сообщение в чате {} (отправлено {})',
+            chat_id,
+            message.date,
+        )
+        return
 
     if not should_respond(
         message, bot_id, bot_username, settings, rate_limiter
