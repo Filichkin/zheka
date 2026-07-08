@@ -116,8 +116,14 @@ async def on_group_message(
         answer = await search_agent.ask(
             build_messages(agent_persona, recent, trigger), chat_id
         )
-        if answer is not None and answer.text:
-            reply = render_answer(answer)
+        if answer is not None:
+            if answer.searched and not answer.citations:
+                logger.info(
+                    'Поиск в чате {} без результатов — молчу', chat_id
+                )
+                return
+            if answer.text:
+                reply = render_answer(answer)
 
     if reply is None:
         generated = await llm.generate(

@@ -109,12 +109,24 @@ def test_link_for_private_supergroup() -> None:
     assert link == 'https://t.me/c/1103887282/42'
 
 
+def test_link_for_forum_topic_includes_topic_id() -> None:
+    link = build_message_link('-1001103887282', 303991, topic_id=203154)
+
+    assert link == 'https://t.me/c/1103887282/203154/303991'
+
+
 def test_link_for_public_username() -> None:
     link = build_message_link('@oleg_payload', 7)
 
     assert link == 'https://t.me/oleg_payload/7'
 
 
+def test_link_for_public_forum_topic() -> None:
+    link = build_message_link('@some_forum', 7, topic_id=3)
+
+    assert link == 'https://t.me/some_forum/3/7'
+
+
 def test_link_for_unknown_format_is_none() -> None:
     assert build_message_link('12345', 1) is None
-    assert build_message_link('-100abc', 1) is None
+    assert build_message_link('-100abc', 1, topic_id=2) is None

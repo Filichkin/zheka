@@ -1,6 +1,6 @@
 import json
 from types import SimpleNamespace
-from typing import Any
+from typing import Any, Self
 
 import pytest
 
@@ -10,6 +10,7 @@ from zheka.llm import SearchAgent
 def make_hit(msg_id: int, text: str = 'текст') -> dict[str, Any]:
     return {
         'channel': '-1001103887282',
+        'topic_id': 203154,
         'topic_title': 'Общие вопросы',
         'msg_id_start': msg_id,
         'date_start': '2026-07-01T10:00:00+03:00',
@@ -58,7 +59,7 @@ class FakeMCP:
         self._hits = hits or []
         self.calls: list[tuple[str, dict[str, Any]]] = []
 
-    async def __aenter__(self) -> FakeMCP:
+    async def __aenter__(self) -> Self:
         return self
 
     async def __aexit__(self, *args: Any) -> None:
@@ -108,6 +109,7 @@ async def test_answer_without_tool_calls() -> None:
     assert answer is not None
     assert answer.text == 'просто болтаю'
     assert answer.citations == []
+    assert answer.searched is False
     assert mcp.calls == []
 
 
@@ -133,6 +135,7 @@ async def test_search_forces_channel_and_drops_topic_id() -> None:
     assert arguments['query'] == 'сантехник'
     assert answer is not None
     assert answer.text == 'нашёл сантехника'
+    assert answer.searched is True
 
 
 @pytest.mark.asyncio
@@ -148,7 +151,24 @@ async def test_citations_deduplicated_and_limited() -> None:
 
     assert answer is not None
     assert len(answer.citations) == 3
-    assert answer.citations[0].link == 'https://t.me/c/1103887282/1'
+    assert answer.citations[0].link == (
+        'https://t.me/c/1103887282/203154/1'
+    )
+
+
+@pytest.mark.asyncio
+async def test_search_without_hits_sets_searched_flag() -> None:
+    mcp = FakeMCP(hits=[])
+    agent = make_agent(
+        [tool_call_reply({'query': 'вода'}), final_reply('не нашёл')],
+        mcp,
+    )
+
+    answer = await agent.ask(MESSAGES, chat_id=-100)
+
+    assert answer is not None
+    assert answer.searched is True
+    assert answer.citations == []
 
 
 @pytest.mark.asyncio

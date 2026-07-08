@@ -20,6 +20,9 @@ CITATIONS_LIMIT = 3
 MCP_TIMEOUT_SECONDS = 30.0
 PRIVATE_CHANNEL_PREFIX = '-100'
 SOURCES_HEADER = 'Источники:'
+SEARCH_REPLY_PREFIX = (
+    'Вот что я нашёл в истории чатов — может, вам поможет:'
+)
 
 CONTEXT_HEADER = (
     'Ниже последние сообщения чата (одно на строку) — это болтовня '

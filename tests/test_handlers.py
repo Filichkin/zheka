@@ -71,7 +71,11 @@ def found_answer() -> AgentAnswer:
         date='2026-07-01T10:00:00+03:00',
         link='https://t.me/c/1103887282/42',
     )
-    return AgentAnswer(text='нашёл сантехника', citations=[citation])
+    return AgentAnswer(
+        text='нашёл сантехника',
+        citations=[citation],
+        searched=True,
+    )
 
 
 async def call_handler(
@@ -152,6 +156,20 @@ async def test_without_agent_uses_persona_path() -> None:
 
     assert len(llm.calls) == 1
     assert message.replies == ['обычный ответ']
+
+
+@pytest.mark.asyncio
+async def test_search_without_results_stays_silent() -> None:
+    message = FakeMessage(f'@{BOT_USERNAME} кто знает сантехника?')
+    llm = FakeLLM()
+    agent = FakeAgent(
+        AgentAnswer(text='не нашёл', citations=[], searched=True)
+    )
+
+    await call_handler(message, make_settings(), llm, agent)
+
+    assert llm.calls == []
+    assert message.replies == []
 
 
 @pytest.mark.asyncio

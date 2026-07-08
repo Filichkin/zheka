@@ -78,6 +78,7 @@ class SearchAgent:
         """Гоняет цикл LLM -> инструменты до финального ответа."""
         tools = await self._tool_schemas(mcp)
         citations: dict[tuple[str, int], Citation] = {}
+        searched = False
 
         for round_num in range(1, MAX_TOOL_ROUNDS + 1):
             logger.info(
@@ -98,6 +99,7 @@ class SearchAgent:
                 return AgentAnswer(
                     text=(reply.content or '').strip(),
                     citations=list(citations.values())[:CITATIONS_LIMIT],
+                    searched=searched,
                 )
 
             messages.append(
@@ -118,6 +120,7 @@ class SearchAgent:
                 }
             )
             for call in reply.tool_calls:
+                searched = True
                 content, hits = await self._call_tool(
                     mcp,
                     call.function.name,

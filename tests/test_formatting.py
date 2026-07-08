@@ -37,6 +37,7 @@ def test_sources_block_with_topic_and_date() -> None:
     rendered = render_answer(answer)
 
     assert rendered == (
+        'Вот что я нашёл в истории чатов — может, вам поможет:\n'
         'нашёл\n\n'
         'Источники:\n'
         '1. Общие вопросы, 2026-07-01 — https://t.me/c/1103887282/42'
@@ -69,7 +70,16 @@ def test_no_linked_citations_means_no_sources_block() -> None:
         text='нашёл', citations=[make_citation(link=None)]
     )
 
-    assert render_answer(answer) == 'нашёл'
+    rendered = render_answer(answer)
+
+    assert 'Источники:' not in rendered
+    assert rendered.endswith('\nнашёл')
+
+
+def test_no_prefix_without_citations() -> None:
+    answer = AgentAnswer(text='просто болтаю')
+
+    assert 'нашёл в истории' not in render_answer(answer)
 
 
 def test_truncation_keeps_sources_intact() -> None:

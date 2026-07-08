@@ -16,7 +16,12 @@ class Citation:
 
 @dataclass
 class AgentAnswer:
-    """Итог работы агента: текст ответа и источники."""
+    """Итог работы агента: текст ответа и источники.
+
+    searched — агент вызывал поиск; вместе с пустыми citations
+    означает «искал и не нашёл» (бот в этом случае молчит).
+    """
 
     text: str
     citations: list[Citation] = field(default_factory=list)
+    searched: bool = False

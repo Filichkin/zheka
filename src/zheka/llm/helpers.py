@@ -14,7 +14,11 @@ def hit_to_citation(hit: Any) -> Citation:
         channel=channel,
         topic_title=get_field(hit, 'topic_title'),
         date=get_field(hit, 'date_start'),
-        link=build_message_link(channel, get_field(hit, 'msg_id_start')),
+        link=build_message_link(
+            channel,
+            get_field(hit, 'msg_id_start'),
+            get_field(hit, 'topic_id'),
+        ),
     )
 
 
