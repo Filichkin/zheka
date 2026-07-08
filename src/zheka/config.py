@@ -23,6 +23,15 @@ class Settings(BaseSettings):
     trigger_keywords: str = ''
     persona_path: str = 'infra/persona.txt'
     allowed_chat_ids: str = ''
+    mcp_url: str = Field(
+        default='',
+        validation_alias='RAG_MCP_URL',
+        description='URL для MCP сервиса',
+    )
+    search_chat_ids: str = Field(
+        default='',
+        validation_alias='SEARCH_CHAT_IDS'
+    )
 
     @property
     def allowed_chats(self) -> set[int]:
@@ -37,6 +46,23 @@ class Settings(BaseSettings):
         """Можно ли боту работать в этом чате."""
         allowed = self.allowed_chats
         return not allowed or chat_id in allowed
+
+    @property
+    def search_chats(self) -> set[int]:
+        """Чаты с включённым поиском; пусто — поиск выключен везде."""
+        return {
+            int(chunk.strip())
+            for chunk in self.search_chat_ids.split(',')
+            if chunk.strip()
+        }
+
+    def search_allowed(self, chat_id: int) -> bool:
+        """Включён ли агент-поиск в этом чате.
+
+        В отличие от chat_allowed, поиск строго opt-in: нужен
+        непустой mcp_url и явное перечисление чата в списке.
+        """
+        return bool(self.mcp_url) and chat_id in self.search_chats
 
     @property
     def keywords(self) -> list[str]:
