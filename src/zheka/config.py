@@ -22,6 +22,7 @@ class Settings(BaseSettings):
     context_window: int = 15
     trigger_keywords: str = ''
     persona_path: str = 'infra/persona.txt'
+    agent_prompt_path: str = 'infra/agent_prompt.txt'
     allowed_chat_ids: str = ''
     mcp_url: str = Field(
         default='',
