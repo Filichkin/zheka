@@ -23,6 +23,8 @@ SOURCES_HEADER = 'Источники:'
 SEARCH_REPLY_PREFIX = (
     'Вот что я нашёл в истории чатов — может, вам поможет:'
 )
+CLASSIFIER_MAX_TOKENS = 10
+CLASSIFIER_POSITIVE = 'да'
 
 CONTEXT_HEADER = (
     'Ниже последние сообщения чата (одно на строку) — это болтовня '

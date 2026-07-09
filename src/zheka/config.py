@@ -23,6 +23,7 @@ class Settings(BaseSettings):
     trigger_keywords: str = ''
     persona_path: str = 'infra/persona.txt'
     agent_prompt_path: str = 'infra/agent_prompt.txt'
+    classifier_prompt_path: str = 'infra/search_classifier.txt'
     allowed_chat_ids: str = ''
     mcp_url: str = Field(
         default='',

@@ -28,7 +28,7 @@ def make_settings(**overrides: Any) -> Settings:
 
 
 class FakeMessage:
-    """Сообщение группы с упоминанием бота (кандидат на ответ)."""
+    """Сообщение группы для прямого вызова обработчика."""
 
     def __init__(self, text: str, chat_id: int = CHAT_ID) -> None:
         self.text = text
@@ -64,6 +64,16 @@ class FakeAgent:
         return self._answer
 
 
+class FakeClassifier:
+    def __init__(self, decision: bool) -> None:
+        self._decision = decision
+        self.calls: list[str] = []
+
+    async def is_search_query(self, text: str) -> bool:
+        self.calls.append(text)
+        return self._decision
+
+
 def found_answer() -> AgentAnswer:
     citation = Citation(
         channel=str(CHAT_ID),
@@ -83,6 +93,7 @@ async def call_handler(
     settings: Settings,
     llm: FakeLLM,
     search_agent: FakeAgent | None,
+    classifier: FakeClassifier | None,
 ) -> ContextBuffer:
     buffer = ContextBuffer(maxlen=15)
     await on_group_message(
@@ -95,6 +106,7 @@ async def call_handler(
         persona='персона',
         search_agent=search_agent,  # type: ignore[arg-type]
         agent_persona='персона + инструкции',
+        classifier=classifier,  # type: ignore[arg-type]
         bot_id=1,
         bot_username=BOT_USERNAME,
         bot_name='Жека',
@@ -103,13 +115,18 @@ async def call_handler(
 
 
 @pytest.mark.asyncio
-async def test_agent_answer_with_sources_sent() -> None:
-    message = FakeMessage(f'@{BOT_USERNAME} кто знает сантехника?')
+async def test_search_question_bypasses_keyword_triggers() -> None:
+    """Вопрос без упоминаний и ключевых слов уходит в поиск."""
+    message = FakeMessage('У нас есть преподаватель по химии?')
     llm = FakeLLM()
     agent = FakeAgent(found_answer())
+    classifier = FakeClassifier(decision=True)
 
-    buffer = await call_handler(message, make_settings(), llm, agent)
+    buffer = await call_handler(
+        message, make_settings(), llm, agent, classifier
+    )
 
+    assert classifier.calls == ['У нас есть преподаватель по химии?']
     assert len(agent.calls) == 1
     assert agent.calls[0][1] == CHAT_ID
     assert llm.calls == []
@@ -121,12 +138,42 @@ async def test_agent_answer_with_sources_sent() -> None:
 
 
 @pytest.mark.asyncio
+async def test_chitchat_by_classifier_uses_persona_path() -> None:
+    message = FakeMessage(f'@{BOT_USERNAME} что горит?')
+    llm = FakeLLM()
+    agent = FakeAgent(found_answer())
+    classifier = FakeClassifier(decision=False)
+
+    await call_handler(message, make_settings(), llm, agent, classifier)
+
+    assert agent.calls == []
+    assert len(llm.calls) == 1
+    assert message.replies == ['обычный ответ']
+
+
+@pytest.mark.asyncio
+async def test_chitchat_without_trigger_stays_silent() -> None:
+    message = FakeMessage('просто болтаем без бота')
+    llm = FakeLLM()
+    agent = FakeAgent(found_answer())
+    classifier = FakeClassifier(decision=False)
+
+    settings = make_settings(reply_probability=0.0)
+    await call_handler(message, settings, llm, agent, classifier)
+
+    assert agent.calls == []
+    assert llm.calls == []
+    assert message.replies == []
+
+
+@pytest.mark.asyncio
 async def test_agent_failure_falls_back_to_persona() -> None:
     message = FakeMessage(f'@{BOT_USERNAME} кто знает сантехника?')
     llm = FakeLLM(reply='отвечаю как обычно')
     agent = FakeAgent(answer=None)
+    classifier = FakeClassifier(decision=True)
 
-    await call_handler(message, make_settings(), llm, agent)
+    await call_handler(message, make_settings(), llm, agent, classifier)
 
     assert len(agent.calls) == 1
     assert len(llm.calls) == 1
@@ -134,16 +181,17 @@ async def test_agent_failure_falls_back_to_persona() -> None:
 
 
 @pytest.mark.asyncio
-async def test_chat_outside_search_list_skips_agent() -> None:
+async def test_chat_outside_search_list_skips_classifier() -> None:
     message = FakeMessage(f'@{BOT_USERNAME} привет')
     llm = FakeLLM()
     agent = FakeAgent(found_answer())
+    classifier = FakeClassifier(decision=True)
     settings = make_settings(SEARCH_CHAT_IDS='-42')
 
-    await call_handler(message, settings, llm, agent)
+    await call_handler(message, settings, llm, agent, classifier)
 
+    assert classifier.calls == []
     assert agent.calls == []
-    assert len(llm.calls) == 1
     assert message.replies == ['обычный ответ']
 
 
@@ -152,7 +200,13 @@ async def test_without_agent_uses_persona_path() -> None:
     message = FakeMessage(f'@{BOT_USERNAME} привет')
     llm = FakeLLM()
 
-    await call_handler(message, make_settings(), llm, search_agent=None)
+    await call_handler(
+        message,
+        make_settings(),
+        llm,
+        search_agent=None,
+        classifier=None,
+    )
 
     assert len(llm.calls) == 1
     assert message.replies == ['обычный ответ']
@@ -160,13 +214,14 @@ async def test_without_agent_uses_persona_path() -> None:
 
 @pytest.mark.asyncio
 async def test_search_without_results_stays_silent() -> None:
-    message = FakeMessage(f'@{BOT_USERNAME} кто знает сантехника?')
+    message = FakeMessage('кто знает сантехника?')
     llm = FakeLLM()
     agent = FakeAgent(
         AgentAnswer(text='не нашёл', citations=[], searched=True)
     )
+    classifier = FakeClassifier(decision=True)
 
-    await call_handler(message, make_settings(), llm, agent)
+    await call_handler(message, make_settings(), llm, agent, classifier)
 
     assert llm.calls == []
     assert message.replies == []
@@ -177,8 +232,9 @@ async def test_agent_empty_text_falls_back_to_persona() -> None:
     message = FakeMessage(f'@{BOT_USERNAME} кто знает сантехника?')
     llm = FakeLLM(reply='запасной ответ')
     agent = FakeAgent(AgentAnswer(text='', citations=[]))
+    classifier = FakeClassifier(decision=True)
 
-    await call_handler(message, make_settings(), llm, agent)
+    await call_handler(message, make_settings(), llm, agent, classifier)
 
     assert len(llm.calls) == 1
     assert message.replies == ['запасной ответ']
