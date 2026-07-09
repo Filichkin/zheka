@@ -18,6 +18,11 @@ class LLMClient:
         )
         self._model = settings.llm_model
 
+    @property
+    def client(self) -> AsyncOpenAI:
+        """Внутренний AsyncOpenAI: переиспользуется агентом."""
+        return self._client
+
     async def generate(
         self,
         messages: list[ChatCompletionMessageParam],
