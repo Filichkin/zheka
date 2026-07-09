@@ -5,6 +5,7 @@ from typing import Any, Self
 import pytest
 
 from zheka.llm import SearchAgent
+from zheka.llm.helpers import sanitize_search_result, strip_sender_ids
 
 
 def make_hit(msg_id: int, text: str = 'текст') -> dict[str, Any]:
@@ -193,6 +194,55 @@ async def test_exhausted_rounds_return_none() -> None:
     agent = make_agent(replies, mcp)
 
     assert await agent.ask(MESSAGES, chat_id=-100) is None
+
+
+def test_strip_sender_ids() -> None:
+    text = (
+        'Канал -100. тема «Услуги». период 2026-06-02–2026-06-02.\n'
+        '6189604808: Принимаю заказы на выпечку\n'
+        'unknown: без автора\n'
+        'обычная строка: не трогаем\n'
+        'позвоните по 89261234567: шутка'
+    )
+
+    cleaned = strip_sender_ids(text)
+
+    assert '6189604808' not in cleaned
+    assert 'unknown:' not in cleaned
+    assert 'Принимаю заказы на выпечку' in cleaned
+    assert 'обычная строка: не трогаем' in cleaned
+    assert 'позвоните по 89261234567: шутка' in cleaned
+
+
+def test_sanitize_survives_unexpected_result_shapes() -> None:
+    sanitize_search_result(SimpleNamespace(structured_content=None))
+    sanitize_search_result(SimpleNamespace(structured_content={}))
+    sanitize_search_result(
+        SimpleNamespace(
+            structured_content={'hits': [{'chunk_id': 1}, 'мусор']}
+        )
+    )
+
+
+@pytest.mark.asyncio
+async def test_sender_ids_hidden_from_llm() -> None:
+    hit = make_hit(10, text='6189604808: сдам гараж')
+    mcp = FakeMCP(hits=[hit])
+    openai = FakeOpenAI(
+        [tool_call_reply({'query': 'гараж'}), final_reply('нашёл')]
+    )
+    agent = SearchAgent(
+        openai,
+        mcp_url='http://test/mcp',
+        model='test-model',
+        client_factory=lambda: mcp,
+    )
+
+    await agent.ask(MESSAGES, chat_id=-100)
+
+    tool_message = openai.chat.completions.requests[1]['messages'][-1]
+    assert '6189604808: ' not in tool_message['content']
+    assert 'сдам гараж' in tool_message['content']
 
 
 @pytest.mark.asyncio
