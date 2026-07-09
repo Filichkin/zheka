@@ -23,6 +23,7 @@ def create_search_agent(
 ) -> tuple[SearchAgent | None, str, SearchClassifier | None]:
     """Собирает агента, его персону и классификатор, если поиск
     включён в конфиге."""
+
     if not settings.mcp_url:
         return None, '', None
     agent = SearchAgent(llm.client, settings.mcp_url, settings.llm_model)
@@ -44,7 +45,9 @@ async def run() -> None:
     llm = LLMClient(settings)
     persona = load_persona(settings.persona_path)
     search_agent, agent_persona, classifier = create_search_agent(
-        settings, llm, persona
+        settings,
+        llm,
+        persona,
     )
     dispatcher = Dispatcher(
         buffer=ContextBuffer(maxlen=settings.context_window),
