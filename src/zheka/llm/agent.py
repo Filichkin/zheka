@@ -15,7 +15,7 @@ from zheka.constants import (
     MAX_TOOL_ROUNDS,
     MCP_TIMEOUT_SECONDS,
 )
-from zheka.llm.helpers import hit_to_citation
+from zheka.llm.helpers import hit_to_citation, sanitize_search_result
 from zheka.llm.schemas import AgentAnswer, Citation
 from zheka.mcp import (
     extract_hits,
@@ -170,6 +170,7 @@ class SearchAgent:
                 'Агент: вызываю {} с аргументами {}', name, arguments
             )
             result = await mcp.call_tool(name, arguments)
+            sanitize_search_result(result)
             hits = extract_hits(result)
             logger.info(
                 'Агент: инструмент {} вернул {} результат(ов)',

@@ -1,10 +1,14 @@
 """Хелперы агента: конвертация и представление результатов поиска."""
 
+import re
 from datetime import datetime
 from typing import Any
 
 from zheka.llm.schemas import Citation
 from zheka.mcp import build_message_link, get_field
+
+
+SENDER_PREFIX_RE = re.compile(r'^(?:\d+|unknown): ', re.MULTILINE)
 
 
 def hit_to_citation(hit: Any) -> Citation:
@@ -41,3 +45,22 @@ def citation_line(index: int, citation: Citation) -> str:
     if parts:
         return f'{index}. {", ".join(parts)} — {citation.link}'
     return f'{index}. {citation.link}'
+
+
+def strip_sender_ids(text: str) -> str:
+    """Убирает префиксы авторов ('123456: ', 'unknown: ') из строк."""
+    return SENDER_PREFIX_RE.sub('', text)
+
+
+def sanitize_search_result(result: Any) -> None:
+    """Чистит id авторов в text всех hits structured_content.
+
+    Мутирует result перед сериализацией для LLM: модель не должна
+    видеть внутренние id (их путают с именами и телефонами).
+    """
+    content = result.structured_content
+    if not isinstance(content, dict):
+        return
+    for hit in content.get('hits') or []:
+        if isinstance(hit, dict) and isinstance(hit.get('text'), str):
+            hit['text'] = strip_sender_ids(hit['text'])
