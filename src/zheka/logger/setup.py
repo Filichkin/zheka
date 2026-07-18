@@ -1,5 +1,6 @@
 import inspect
 import logging
+import os
 import sys
 
 from loguru import logger
@@ -28,7 +29,21 @@ class InterceptHandler(logging.Handler):
         )
 
 
-def setup_logging(level: str = 'INFO') -> None:
+def setup_logging(
+    level: str | None = None,
+    log_file: str = 'logs/app.log',
+) -> None:
+    if level is None:
+        level = os.getenv('LOG_LEVEL', 'INFO')
     logger.remove()
     logger.add(sys.stderr, level=level, format=LOG_FORMAT)
+    logger.add(
+        log_file,
+        level=level,
+        format=LOG_FORMAT,
+        rotation='10 MB',
+        retention='14 days',
+        compression='gz',
+        encoding='utf-8',
+    )
     logging.basicConfig(handlers=[InterceptHandler()], level=0, force=True)

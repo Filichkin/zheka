@@ -1,0 +1,89 @@
+name: Release
+
+on:
+  push:
+    branches: [main] # срабатывает в момент мержа PR (и на прямой пуш)
+
+concurrency:
+  group: release # два мержа подряд деплоятся по очереди
+  cancel-in-progress: false
+
+jobs:
+  # Те же тесты, что и на PR, — страховка от прямых пушей в main
+  tests:
+    uses: ./.github/workflows/ci.yml
+
+  build-push:
+    name: Сборка и публикация образа
+    runs-on: ubuntu-latest
+    needs: tests
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Короткий SHA для тега
+        run: echo "SHORT_SHA=$(git rev-parse --short HEAD)" >> "$GITHUB_ENV"
+
+      - uses: docker/setup-buildx-action@v4
+
+      - name: Логин в Docker Hub
+        uses: docker/login-action@v4
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Образ бота
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: infra/docker/bot.Dockerfile
+          platforms: linux/amd64
+          push: true
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/zheka-bot:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/zheka-bot:sha-${{ env.SHORT_SHA }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy:
+    name: Деплой на сервер
+    runs-on: ubuntu-latest
+    needs: build-push
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Настройка SSH-ключа
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "${{ secrets.SSH_HOST }}" >> ~/.ssh/known_hosts
+
+      # Файлы сервера из репозитория (кроме .env и prompts/ — они
+      # секретные и обновляются на сервере только вручную)
+      - name: Синхронизация файлов сервера
+        run: |
+          scp -i ~/.ssh/deploy_key \
+            infra/docker-compose.prod.yml \
+            "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/opt/zheka/docker-compose.yml"
+          scp -i ~/.ssh/deploy_key \
+            infra/backup_logs.sh \
+            "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/opt/zheka/backup_logs.sh"
+
+      - name: Обновление стека
+        run: |
+          ssh -i ~/.ssh/deploy_key "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}" \
+            'cd /opt/zheka \
+             && chmod +x backup_logs.sh \
+             && docker compose pull --quiet \
+             && docker compose up -d'
+
+      # У polling-бота нет HTTP /health: проверяем, что контейнер
+      # running и в логах свежего контейнера есть строка старта
+      - name: Проверка здоровья
+        run: |
+          sleep 15
+          ssh -i ~/.ssh/deploy_key "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}" \
+            'cd /opt/zheka \
+             && docker compose ps bot --status running --format "{{.Name}} {{.State}}" | grep -q running \
+             && docker compose logs bot | grep -q "Запускаю polling" \
+             && docker compose ps'
