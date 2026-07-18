@@ -92,10 +92,12 @@ docker push "$DU/zheka-bot:latest"
 
 ## 2. Разовая настройка сервера
 
-Docker уже установлен (insta_bot). Остаётся:
+Docker уже установлен (insta_bot). Адрес сервера здесь — `<IP>`
+(реальный лежит в `HETZNER_SERVER_IP` в локальном `infra/.env`).
+Остаётся:
 
 ```bash
-ssh root@46.224.167.207
+ssh root@<IP>
 mkdir -p /opt/zheka/logs /opt/zheka/prompts
 chown 1000:1000 /opt/zheka/logs   # бот в контейнере — uid 1000
 ```
@@ -103,10 +105,10 @@ chown 1000:1000 /opt/zheka/logs   # бот в контейнере — uid 1000
 Скопировать с Mac секреты и промпты:
 
 ```bash
-scp infra/.env root@46.224.167.207:/opt/zheka/.env
+scp infra/.env root@<IP>:/opt/zheka/.env
 scp infra/persona.txt infra/agent_prompt.txt \
-    infra/search_classifier.txt root@46.224.167.207:/opt/zheka/prompts/
-ssh root@46.224.167.207 'chmod 600 /opt/zheka/.env'
+    infra/search_classifier.txt root@<IP>:/opt/zheka/prompts/
+ssh root@<IP> 'chmod 600 /opt/zheka/.env'
 ```
 
 Проверить `.env` на сервере:

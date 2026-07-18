@@ -62,9 +62,17 @@ zheka/
 ├── pyproject.toml
 ├── infra/
 │   ├── .env                # секреты (в .gitignore)
+│   ├── .env.example        # шаблон переменных окружения
 │   ├── persona.txt         # характер бота (в .gitignore)
 │   ├── agent_prompt.txt    # инструкции агенту-поиску (в .gitignore)
-│   └── search_classifier.txt  # промпт классификатора (в .gitignore)
+│   ├── search_classifier.txt  # промпт классификатора (в .gitignore)
+│   ├── docker/bot.Dockerfile  # образ бота (двухстадийная сборка, uv)
+│   ├── docker-compose.prod.yml  # прод-стек: один сервис bot
+│   ├── backup_logs.sh      # ежедневный синк логов в S3 (cron)
+│   └── PROD.md             # инструкция по деплою и эксплуатации
+├── .github/workflows/
+│   ├── ci.yml              # PR в main: ruff + pytest
+│   └── release.yml         # мерж в main: сборка образа + деплой
 ├── src/zheka/
 │   ├── config.py           # настройки из infra/.env (pydantic-settings)
 │   ├── constants.py        # константы: лимиты токенов, ключевые слова
@@ -278,28 +286,32 @@ uv run ruff format src/ tests/   # форматирование
 строки после блока импортов, докстринги на русском. Всё это проверяется
 ruff-конфигом в `pyproject.toml`.
 
-## Постоянный запуск
+## Деплой (прод)
 
-Для работы 24/7 запускайте процесс под supervisor'ом, например systemd-юнит
-на VPS:
+Бот работает на сервере в Docker: один контейнер, long polling, без
+открытых портов и БД. Пайплайн — GitHub Actions:
 
-```ini
-[Unit]
-Description=Zheka Telegram bot
-After=network-online.target
+- PR в `main` → линтер и тесты ([ci.yml](.github/workflows/ci.yml));
+- мерж в `main` → тесты, сборка образа под `linux/amd64`, пуш в
+  Docker Hub (теги `latest` и `sha-<коммит>` — по последнему делается
+  откат) и деплой на сервер по SSH
+  ([release.yml](.github/workflows/release.yml)).
 
-[Service]
-WorkingDirectory=/opt/zheka
-ExecStart=/usr/local/bin/uv run zheka
-Restart=on-failure
-RestartSec=5
+Логи пишутся в `logs/app.log` (ротация средствами loguru) и раз в
+сутки синхронизируются в S3 скриптом
+[infra/backup_logs.sh](infra/backup_logs.sh) из cron. Секреты
+(`infra/.env`) и промпты (`infra/*.txt`) в git не хранятся и
+доставляются на сервер вручную; шаблон переменных —
+[infra/.env.example](infra/.env.example).
 
-[Install]
-WantedBy=multi-user.target
-```
+Полная инструкция — [infra/PROD.md](infra/PROD.md): разовая настройка
+сервера, первый запуск, обновление и откат версии, эксплуатация,
+типовые проблемы.
 
 Контекст чатов хранится в памяти и при перезапуске теряется — для
-чат-бота-собеседника это некритично.
+чат-бота-собеседника это некритично. Помните: polling-инстанс может
+быть только один — пока бот работает на сервере, локальный
+`uv run zheka` получит `TelegramConflictError`.
 
 ## Лицензия
 
