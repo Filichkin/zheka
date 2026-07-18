@@ -1,6 +1,7 @@
 .env
 *.env
 infra/.env
+!infra/.env.example
 *.session
 
 logs/

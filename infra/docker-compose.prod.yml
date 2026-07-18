@@ -1,0 +1,25 @@
+name: zheka
+
+# Лимит докер-логов: json-файл контейнера не разрастается —
+# максимум 3 файла по 10 МБ (старые затираются). Полная история
+# живёт в logs/app.log и уходит в S3 (backup_logs.sh).
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: '10m'
+    max-file: '3'
+
+services:
+  bot:
+    image: ${DOCKER_USERNAME}/zheka-bot:${IMAGE_TAG}
+    restart: unless-stopped
+    logging: *default-logging
+    env_file: .env
+    volumes:
+      # Логи приложения — в обычную папку на сервере рядом
+      # с compose-файлом; перед первым стартом один раз:
+      #   mkdir -p logs && chown 1000:1000 logs
+      - ./logs:/app/logs
+      # Промпты (persona.txt и др.) копируются на сервер вручную
+      # (scp, не через git/CI), в контейнере — только чтение
+      - ./prompts:/app/infra:ro
