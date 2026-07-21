@@ -103,15 +103,20 @@ async def on_group_message(
         )
         return
 
-    logger.info('Сообщение: chat={} author={} text={}', chat_id, author, text)
+    logger.info(
+        'Сообщение: chat={} thread={} author={} text={}',
+        chat_id, thread_id, author, text,
+    )
 
     recent = buffer.get_recent(chat_id)
     buffer.add(chat_id, author, text)
 
     if is_stale(message.date):
         logger.info(
-            'Пропускаю устаревшее сообщение в чате {} (отправлено {})',
+            'Пропускаю устаревшее сообщение в чате {} thread={} '
+            '(отправлено {})',
             chat_id,
+            thread_id,
             message.date,
         )
         return
@@ -128,17 +133,21 @@ async def on_group_message(
     ):
         if not rate_limiter.allow(chat_id):
             logger.info(
-                'Лимит частоты в чате {} — пропускаю вопрос', chat_id
+                'Лимит частоты в чате {} thread={} — пропускаю вопрос',
+                chat_id, thread_id,
             )
             return
-        logger.info('Ищу ответ в истории чата {}', chat_id)
+        logger.info(
+            'Ищу ответ в истории чата {} thread={}', chat_id, thread_id
+        )
         answer = await search_agent.ask(
             build_messages(agent_persona, recent, trigger), chat_id
         )
         if answer is not None:
             if answer.searched and not answer.citations:
                 logger.info(
-                    'Поиск в чате {} без результатов — молчу', chat_id
+                    'Поиск в чате {} thread={} без результатов — молчу',
+                    chat_id, thread_id,
                 )
                 return
             if answer.text:
@@ -149,7 +158,7 @@ async def on_group_message(
             message, bot_id, bot_username, settings, rate_limiter
         ):
             return
-        logger.info('Генерирую ответ в чате {}', chat_id)
+        logger.info('Генерирую ответ в чате {} thread={}', chat_id, thread_id)
         generated = await llm.generate(
             build_messages(persona, recent, trigger)
         )
@@ -157,22 +166,28 @@ async def on_group_message(
             reply = generated[:TELEGRAM_MESSAGE_LIMIT]
 
     if not reply:
-        logger.warning('Ответ для чата {} не сгенерирован', chat_id)
+        logger.warning(
+            'Ответ для чата {} thread={} не сгенерирован', chat_id, thread_id
+        )
         return
 
     try:
         await message.reply(reply)
     except TelegramRetryAfter as error:
         logger.warning(
-            'Rate limit Telegram в чате {} — пропускаю ответ '
+            'Rate limit Telegram в чате {} thread={} — пропускаю ответ '
             '(retry_after={}s)',
             chat_id,
+            thread_id,
             error.retry_after,
         )
         return
     except TelegramAPIError as error:
-        logger.error('Не удалось отправить ответ в чат {}: {}', chat_id, error)
+        logger.error(
+            'Не удалось отправить ответ в чат {} thread={}: {}',
+            chat_id, thread_id, error,
+        )
         return
     rate_limiter.register(chat_id)
     buffer.add(chat_id, bot_name, reply)
-    logger.info('Ответил в чате {}: {}', chat_id, reply)
+    logger.info('Ответил в чате {} thread={}: {}', chat_id, thread_id, reply)
