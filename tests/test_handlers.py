@@ -30,12 +30,18 @@ def make_settings(**overrides: Any) -> Settings:
 class FakeMessage:
     """Сообщение группы для прямого вызова обработчика."""
 
-    def __init__(self, text: str, chat_id: int = CHAT_ID) -> None:
+    def __init__(
+        self,
+        text: str,
+        chat_id: int = CHAT_ID,
+        message_thread_id: int | None = None,
+    ) -> None:
         self.text = text
         self.chat = SimpleNamespace(id=chat_id)
         self.from_user = SimpleNamespace(full_name='Иван Иванов')
         self.date = datetime.now(UTC)
         self.reply_to_message = None
+        self.message_thread_id = message_thread_id
         self.replies: list[str] = []
 
     async def reply(self, text: str) -> None:
@@ -238,3 +244,37 @@ async def test_agent_empty_text_falls_back_to_persona() -> None:
 
     assert len(llm.calls) == 1
     assert message.replies == ['запасной ответ']
+
+
+@pytest.mark.asyncio
+async def test_topic_outside_whitelist_stays_silent_without_leaving() -> None:
+    """Чужая тема — бот молчит, но чат не покидает (bot без leave_chat)."""
+    message = FakeMessage(
+        f'@{BOT_USERNAME} привет', message_thread_id=999
+    )
+    llm = FakeLLM()
+    agent = FakeAgent(found_answer())
+    classifier = FakeClassifier(decision=True)
+    settings = make_settings(allowed_topic_ids=f'{CHAT_ID}:12')
+
+    await call_handler(message, settings, llm, agent, classifier)
+
+    assert classifier.calls == []
+    assert agent.calls == []
+    assert llm.calls == []
+    assert message.replies == []
+
+
+@pytest.mark.asyncio
+async def test_topic_in_whitelist_is_processed() -> None:
+    message = FakeMessage(
+        f'@{BOT_USERNAME} привет', message_thread_id=12
+    )
+    llm = FakeLLM()
+    agent = FakeAgent(found_answer())
+    classifier = FakeClassifier(decision=False)
+    settings = make_settings(allowed_topic_ids=f'{CHAT_ID}:12')
+
+    await call_handler(message, settings, llm, agent, classifier)
+
+    assert message.replies == ['обычный ответ']

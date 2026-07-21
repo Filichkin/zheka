@@ -25,9 +25,7 @@ class Settings(BaseSettings):
     agent_prompt_path: str = 'infra/agent_prompt.txt'
     classifier_prompt_path: str = 'infra/search_classifier.txt'
     allowed_chat_ids: str = ''
-    allowed_topic_ids: str = Field(
-        default='', validation_alias='ALLOWED_TOPIC_IDS'
-    )
+    allowed_topic_ids: str = ''
     mcp_url: str = Field(
         default='',
         validation_alias='RAG_MCP_URL',
