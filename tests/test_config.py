@@ -32,6 +32,31 @@ def test_empty_whitelist_allows_any_chat() -> None:
     assert settings.chat_allowed(-100500)
 
 
+def test_allowed_topics_parsed_from_csv() -> None:
+    settings = make_settings(allowed_topic_ids='-100:12, -100:34')
+
+    assert settings.allowed_topics == {(-100, 12), (-100, 34)}
+
+
+def test_topic_in_whitelist_is_allowed() -> None:
+    settings = make_settings(allowed_topic_ids='-100:12')
+
+    assert settings.topic_allowed(-100, 12)
+    assert not settings.topic_allowed(-100, 34)
+
+
+def test_chat_without_topic_entries_allows_any_topic() -> None:
+    settings = make_settings(allowed_topic_ids='-200:12')
+
+    assert settings.topic_allowed(-100, 999)
+
+
+def test_general_topic_always_allowed() -> None:
+    settings = make_settings(allowed_topic_ids='-100:12')
+
+    assert settings.topic_allowed(-100, None)
+
+
 def test_search_chats_parsed_from_csv() -> None:
     settings = make_settings(SEARCH_CHAT_IDS='-100, -200')
 

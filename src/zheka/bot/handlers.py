@@ -95,6 +95,14 @@ async def on_group_message(
         await _leave_chat_quietly(bot, chat_id)
         return
 
+    thread_id = message.message_thread_id
+    if not settings.topic_allowed(chat_id, thread_id):
+        logger.info(
+            'Тема вне белого списка (chat={} thread={}) — игнорирую',
+            chat_id, thread_id,
+        )
+        return
+
     logger.info('Сообщение: chat={} author={} text={}', chat_id, author, text)
 
     recent = buffer.get_recent(chat_id)
