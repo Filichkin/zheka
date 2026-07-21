@@ -25,6 +25,9 @@ class Settings(BaseSettings):
     agent_prompt_path: str = 'infra/agent_prompt.txt'
     classifier_prompt_path: str = 'infra/search_classifier.txt'
     allowed_chat_ids: str = ''
+    allowed_topic_ids: str = Field(
+        default='', validation_alias='ALLOWED_TOPIC_IDS'
+    )
     mcp_url: str = Field(
         default='',
         validation_alias='RAG_MCP_URL',
@@ -48,6 +51,30 @@ class Settings(BaseSettings):
         """Можно ли боту работать в этом чате."""
         allowed = self.allowed_chats
         return not allowed or chat_id in allowed
+
+    @property
+    def allowed_topics(self) -> set[tuple[int, int]]:
+        """Разрешённые (chat_id, thread_id) — темы форума."""
+        pairs: set[tuple[int, int]] = set()
+        for chunk in self.allowed_topic_ids.split(','):
+            chunk = chunk.strip()
+            if not chunk:
+                continue
+            chat_str, _, thread_str = chunk.partition(':')
+            pairs.add((int(chat_str), int(thread_str)))
+        return pairs
+
+    def topic_allowed(self, chat_id: int, thread_id: int | None) -> bool:
+        """Можно ли боту отвечать в этой теме чата.
+
+        Сообщения вне тем (General) не ограничиваются. Если для
+        чата не задано ни одной темы в ALLOWED_TOPIC_IDS, ограничение
+        не действует (как chat_allowed — пусто значит без ограничений).
+        """
+        if thread_id is None:
+            return True
+        chat_topics = {t for c, t in self.allowed_topics if c == chat_id}
+        return not chat_topics or thread_id in chat_topics
 
     @property
     def search_chats(self) -> set[int]:
