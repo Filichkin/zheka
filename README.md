@@ -163,7 +163,7 @@ uv run zheka
 | `LLM_MODEL` | — | Модель OpenAI (`gpt-5.4-mini` — дешевле полной) |
 | `TG_ADMIN_ID` | `0` | Telegram ID администратора |
 | `OPENAI_BASE_URL` | пусто | OpenAI-совместимый шлюз/прокси |
-| `REPLY_PROBABILITY` | `0.07` | Шанс ответить на обычное сообщение |
+| `REPLY_PROBABILITY` | `0.02` | Шанс ответить на обычное сообщение |
 | `MAX_REPLIES_PER_MINUTE` | `3` | Лимит ответов на чат в минуту |
 | `MAX_REPLIES_PER_DAY` | `300` | Глобальный дневной лимит вызовов LLM |
 | `CONTEXT_WINDOW` | `15` | Сколько последних сообщений в контексте |
