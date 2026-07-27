@@ -34,6 +34,8 @@ CONTEXT_HEADER = (
 CONTEXT_OPEN = '<<<'
 CONTEXT_CLOSE = '>>>'
 
+MAX_CHAT_REPLY_PROBABILITY = 0.8
+
 TRIGGER_KEYWORDS = [
     'жека',  # прямое обращение к боту
     'потеряшка',
