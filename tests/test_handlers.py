@@ -100,6 +100,7 @@ async def call_handler(
     llm: FakeLLM,
     search_agent: FakeAgent | None,
     classifier: FakeClassifier | None,
+    personas: dict[int, str] | None = None,
 ) -> ContextBuffer:
     buffer = ContextBuffer(maxlen=15)
     await on_group_message(
@@ -109,9 +110,10 @@ async def call_handler(
         settings=settings,
         rate_limiter=RateLimiter(max_per_minute=10, max_per_day=100),
         llm=llm,  # type: ignore[arg-type]
-        persona='персона',
+        personas=personas or {},
+        default_persona='персона',
         search_agent=search_agent,  # type: ignore[arg-type]
-        agent_persona='персона + инструкции',
+        agent_instructions='инструкции',
         classifier=classifier,  # type: ignore[arg-type]
         bot_id=1,
         bot_username=BOT_USERNAME,
@@ -263,6 +265,40 @@ async def test_topic_outside_whitelist_stays_silent_without_leaving() -> None:
     assert agent.calls == []
     assert llm.calls == []
     assert message.replies == []
+
+
+@pytest.mark.asyncio
+async def test_chat_with_mapped_persona_uses_it() -> None:
+    message = FakeMessage(f'@{BOT_USERNAME} привет')
+    llm = FakeLLM()
+
+    await call_handler(
+        message,
+        make_settings(),
+        llm,
+        search_agent=None,
+        classifier=None,
+        personas={CHAT_ID: 'персона чата'},
+    )
+
+    assert llm.calls[0][0]['content'] == 'персона чата'
+
+
+@pytest.mark.asyncio
+async def test_chat_without_mapped_persona_uses_default() -> None:
+    message = FakeMessage(f'@{BOT_USERNAME} привет')
+    llm = FakeLLM()
+
+    await call_handler(
+        message,
+        make_settings(),
+        llm,
+        search_agent=None,
+        classifier=None,
+        personas={-999: 'чужая персона'},
+    )
+
+    assert llm.calls[0][0]['content'] == 'персона'
 
 
 @pytest.mark.asyncio

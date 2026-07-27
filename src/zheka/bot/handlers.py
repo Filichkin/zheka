@@ -76,9 +76,10 @@ async def on_group_message(
     settings: Settings,
     rate_limiter: RateLimiter,
     llm: LLMClient,
-    persona: str,
+    personas: dict[int, str],
+    default_persona: str,
     search_agent: SearchAgent | None,
-    agent_persona: str,
+    agent_instructions: str,
     classifier: SearchClassifier | None,
     bot_id: int,
     bot_username: str,
@@ -102,6 +103,8 @@ async def on_group_message(
             chat_id, thread_id,
         )
         return
+
+    persona = personas.get(chat_id, default_persona)
 
     logger.info(
         'Сообщение: chat={} thread={} author={} text={}',
@@ -141,7 +144,10 @@ async def on_group_message(
             'Ищу ответ в истории чата {} thread={}', chat_id, thread_id
         )
         answer = await search_agent.ask(
-            build_messages(agent_persona, recent, trigger), chat_id
+            build_messages(
+                f'{persona}\n\n{agent_instructions}', recent, trigger
+            ),
+            chat_id,
         )
         if answer is not None:
             if answer.searched and not answer.citations:
