@@ -171,6 +171,8 @@ uv run zheka
 | `PERSONA_PATH` | `infra/persona.txt` | Путь к файлу персоны |
 | `ALLOWED_CHAT_IDS` | пусто | Белый список chat_id через запятую |
 | `ALLOWED_TOPIC_IDS` | пусто | Белый список тем форума: `chat_id:thread_id` через запятую |
+| `CHAT_PERSONA_PATHS` | пусто | Персона по чату: `chat_id:путь` через запятую |
+| `CHAT_REPLY_PROBABILITIES` | пусто | Шанс случайного ответа по чату: `chat_id:вероятность` (потолок 0.8) |
 | `RAG_MCP_URL` | пусто | URL MCP-сервера ChanScan; пусто — поиск выключен |
 | `SEARCH_CHAT_IDS` | пусто | Чаты с включённым поиском (строго opt-in) |
 | `AGENT_PROMPT_PATH` | `infra/agent_prompt.txt` | Инструкции агенту-поиску |
@@ -186,6 +188,12 @@ uv run zheka
 `chat_id:thread_id`. Сообщения вне тем (General) не ограничиваются;
 если для чата нет ни одной пары в списке — ограничение не действует.
 thread_id смотреть в Telegram Desktop (в ссылке на тему).
+
+`CHAT_PERSONA_PATHS` / `CHAT_REPLY_PROBABILITIES` — позволяют дать
+отдельным чатам свою персону (файл, как `infra/persona.txt`) и/или
+более высокий шанс случайного ответа. Чат не из списка использует
+общие `PERSONA_PATH`/`REPLY_PROBABILITY`. Вероятность всегда
+ограничена потолком 0.8, даже если в `.env` указано больше.
 
 Если `TRIGGER_KEYWORDS` не задан, используется встроенный список из
 `src/zheka/constants.py` (обращения «жека», просьбы о совете, поиск мастера,

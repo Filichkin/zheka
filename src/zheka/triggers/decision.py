@@ -44,7 +44,7 @@ def should_respond(
         _is_mention(text, bot_username)
         or _is_reply_to_bot(message, bot_id)
         or _has_keyword(text, settings.keywords)
-        or random_func() < settings.reply_probability
+        or random_func() < settings.reply_probability_for(message.chat.id)
     )
     if not is_candidate:
         return False

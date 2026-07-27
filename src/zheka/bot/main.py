@@ -19,9 +19,8 @@ from zheka.ratelimit import RateLimiter
 def create_search_agent(
     settings: Settings,
     llm: LLMClient,
-    persona: str,
 ) -> tuple[SearchAgent | None, str, SearchClassifier | None]:
-    """Собирает агента, его персону и классификатор, если поиск
+    """Собирает агента, инструкции и классификатор, если поиск
     включён в конфиге."""
 
     if not settings.mcp_url:
@@ -34,7 +33,7 @@ def create_search_agent(
         load_persona(settings.classifier_prompt_path),
     )
     logger.info('Агент-поиск включён: {}', settings.mcp_url)
-    return agent, f'{persona}\n\n{instructions}', classifier
+    return agent, instructions, classifier
 
 
 async def run() -> None:
@@ -43,11 +42,13 @@ async def run() -> None:
     me = await bot.me()
     logger.info('Бот @{} id={}', me.username, me.id)
     llm = LLMClient(settings)
-    persona = load_persona(settings.persona_path)
-    search_agent, agent_persona, classifier = create_search_agent(
-        settings,
-        llm,
-        persona,
+    default_persona = load_persona(settings.persona_path)
+    personas = {
+        chat_id: load_persona(path)
+        for chat_id, path in settings.persona_paths.items()
+    }
+    search_agent, agent_instructions, classifier = create_search_agent(
+        settings, llm
     )
     dispatcher = Dispatcher(
         buffer=ContextBuffer(maxlen=settings.context_window),
@@ -57,9 +58,10 @@ async def run() -> None:
             max_per_day=settings.max_replies_per_day,
         ),
         llm=llm,
-        persona=persona,
+        personas=personas,
+        default_persona=default_persona,
         search_agent=search_agent,
-        agent_persona=agent_persona,
+        agent_instructions=agent_instructions,
         classifier=classifier,
         bot_id=me.id,
         bot_username=me.username or '',

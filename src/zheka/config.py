@@ -1,7 +1,7 @@
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-from zheka.constants import TRIGGER_KEYWORDS
+from zheka.constants import MAX_CHAT_REPLY_PROBABILITY, TRIGGER_KEYWORDS
 
 
 class Settings(BaseSettings):
@@ -17,11 +17,13 @@ class Settings(BaseSettings):
     openai_base_url: str = ''
     llm_model: str
     reply_probability: float = 0.02
+    chat_reply_probabilities: str = ''
     max_replies_per_minute: int = 3
     max_replies_per_day: int = 300
     context_window: int = 15
     trigger_keywords: str = ''
     persona_path: str = 'infra/persona.txt'
+    chat_persona_paths: str = ''
     agent_prompt_path: str = 'infra/agent_prompt.txt'
     classifier_prompt_path: str = 'infra/search_classifier.txt'
     allowed_chat_ids: str = ''
@@ -73,6 +75,36 @@ class Settings(BaseSettings):
             return True
         chat_topics = {t for c, t in self.allowed_topics if c == chat_id}
         return not chat_topics or thread_id in chat_topics
+
+    @property
+    def persona_paths(self) -> dict[int, str]:
+        """Персона по chat_id: {chat_id: путь к файлу персоны}."""
+        mapping: dict[int, str] = {}
+        for chunk in self.chat_persona_paths.split(','):
+            chunk = chunk.strip()
+            if not chunk:
+                continue
+            chat_str, _, path = chunk.partition(':')
+            mapping[int(chat_str)] = path
+        return mapping
+
+    @property
+    def reply_probabilities(self) -> dict[int, float]:
+        """Переопределение REPLY_PROBABILITY по chat_id (потолок 0.8)."""
+        mapping: dict[int, float] = {}
+        for chunk in self.chat_reply_probabilities.split(','):
+            chunk = chunk.strip()
+            if not chunk:
+                continue
+            chat_str, _, prob_str = chunk.partition(':')
+            mapping[int(chat_str)] = min(
+                float(prob_str), MAX_CHAT_REPLY_PROBABILITY
+            )
+        return mapping
+
+    def reply_probability_for(self, chat_id: int) -> float:
+        """Шанс случайного ответа в конкретном чате."""
+        return self.reply_probabilities.get(chat_id, self.reply_probability)
 
     @property
     def search_chats(self) -> set[int]:

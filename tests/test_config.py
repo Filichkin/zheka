@@ -57,6 +57,29 @@ def test_general_topic_always_allowed() -> None:
     assert settings.topic_allowed(-100, None)
 
 
+def test_persona_paths_parsed_from_csv() -> None:
+    settings = make_settings(
+        chat_persona_paths='-100:infra/a.txt, -200:infra/b.txt'
+    )
+
+    assert settings.persona_paths == {-100: 'infra/a.txt', -200: 'infra/b.txt'}
+
+
+def test_reply_probabilities_parsed_and_capped() -> None:
+    settings = make_settings(chat_reply_probabilities='-100:0.5, -200:0.95')
+
+    assert settings.reply_probabilities == {-100: 0.5, -200: 0.8}
+
+
+def test_reply_probability_for_uses_override_or_default() -> None:
+    settings = make_settings(
+        reply_probability=0.02, chat_reply_probabilities='-100:0.8'
+    )
+
+    assert settings.reply_probability_for(-100) == 0.8
+    assert settings.reply_probability_for(-999) == 0.02
+
+
 def test_search_chats_parsed_from_csv() -> None:
     settings = make_settings(SEARCH_CHAT_IDS='-100, -200')
 
