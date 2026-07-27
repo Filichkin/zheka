@@ -90,6 +90,34 @@ def test_probability_one_always_responds() -> None:
     )
 
 
+def test_chat_reply_probability_override_triggers_response() -> None:
+    settings = make_settings(chat_reply_probabilities='7:0.8')
+    message = make_message('обычное сообщение', chat_id=7)
+
+    assert should_respond(
+        message,
+        BOT_ID,
+        BOT_USERNAME,
+        settings,
+        make_limiter(),
+        random_func=lambda: 0.5,
+    )
+
+
+def test_chat_reply_probability_override_is_chat_scoped() -> None:
+    settings = make_settings(chat_reply_probabilities='7:0.8')
+    message = make_message('обычное сообщение', chat_id=1)
+
+    assert not should_respond(
+        message,
+        BOT_ID,
+        BOT_USERNAME,
+        settings,
+        make_limiter(),
+        random_func=lambda: 0.5,
+    )
+
+
 def test_fresh_message_is_not_stale() -> None:
     now = datetime(2026, 7, 8, 12, 0, 0, tzinfo=UTC)
     sent = now - timedelta(seconds=30)
