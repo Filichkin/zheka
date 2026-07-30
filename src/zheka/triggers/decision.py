@@ -3,6 +3,7 @@ from collections.abc import Callable
 from datetime import UTC, datetime
 
 from aiogram.types import Message
+from loguru import logger
 
 from zheka.config import Settings
 from zheka.constants import STALE_MESSAGE_SECONDS
@@ -40,12 +41,23 @@ def should_respond(
     проходит проверку лимитов частоты.
     """
     text = (message.text or '').lower()
-    is_candidate = (
-        _is_mention(text, bot_username)
-        or _is_reply_to_bot(message, bot_id)
-        or _has_keyword(text, settings.keywords)
-        or random_func() < settings.reply_probability_for(message.chat.id)
+    mention = _is_mention(text, bot_username)
+    reply_to_bot = _is_reply_to_bot(message, bot_id)
+    keyword = _has_keyword(text, settings.keywords)
+    random_hit = random_func() < settings.reply_probability_for(
+        message.chat.id
     )
+    is_candidate = mention or reply_to_bot or keyword or random_hit
+    if is_candidate:
+        logger.info(
+            'Триггер ответа: chat={} mention={} reply={} keyword={} '
+            'random={}',
+            message.chat.id,
+            mention,
+            reply_to_bot,
+            keyword,
+            random_hit,
+        )
     if not is_candidate:
         return False
     return rate_limiter.allow(message.chat.id)
